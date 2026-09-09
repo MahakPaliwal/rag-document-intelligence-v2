@@ -23,28 +23,61 @@ An end-to-end Retrieval-Augmented Generation (RAG) application that lets users u
 - **Containerization:** Docker
 - **Cloud-ready:** AWS ECS/Fargate task definition included
 
-## Architecture
-User Question
-│
-▼
-┌─────────────┐
-│ Rewrite │ → reformulates the question for better retrieval
-└──────┬──────┘
-▼
-┌─────────────┐
-│ Retrieve │ → semantic search over FAISS vector store
-└──────┬──────┘
-▼
-┌─────────────┐
-│ Generate │ → Groq LLM answers using retrieved context only
-└──────┬──────┘
-▼
-┌─────────────┐
-│ Evaluate │ → scores faithfulness & relevancy (LLM-as-judge)
-└──────┬──────┘
-▼
-Low faithfulness? ──Yes──► Widen retrieval (larger k) ──► back to Retrieve
-│
-No
-▼
-Final Answer
+## Running Locally
+
+1. Clone the repo:
+```bash
+git clone https://github.com/<your-username>/rag-document-intelligence-v2.git
+cd rag-document-intelligence-v2
+```
+
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+3. Set your Groq API key:
+```bash
+export GROQ_API_KEY=your_key_here   # macOS/Linux
+set GROQ_API_KEY=your_key_here      # Windows cmd
+```
+
+4. Run the app:
+```bash
+streamlit run app.py
+```
+
+## Running with Docker
+
+```bash
+docker build -t rag-pdf-app .
+docker run -p 8501:8501 -e GROQ_API_KEY=your_key_here rag-pdf-app
+```
+
+Then open `http://localhost:8501`.
+
+## Configuration
+
+| Environment Variable | Description | Default |
+|---|---|---|
+| `GROQ_API_KEY` | Your Groq API key (required) | — |
+| `GROQ_MODEL` | Groq model to use for generation & evaluation | `openai/gpt-oss-120b` |
+
+## Evaluation Framework
+
+Each answer is automatically scored on two dimensions using an LLM-as-judge approach:
+- **Faithfulness (1–5):** does the answer stay grounded in the retrieved context, without hallucinated claims?
+- **Relevancy (1–5):** does the answer directly address the question asked?
+
+If faithfulness scores ≤2, the pipeline automatically retries with a wider retrieval window (`k`) before returning a final answer — a lightweight form of self-correction built into the graph itself.
+
+## Notes
+
+- Get a free Groq API key at [console.groq.com/keys](https://console.groq.com/keys).
+- Upload limits: 10 PDFs per session, 200MB per file (configurable in `app.py`).
+- An AWS ECS/Fargate task definition (`task-definition.json`) is included for teams wanting to deploy on dedicated cloud infrastructure beyond Streamlit Cloud.
+
+## License
+
+MIT
+
